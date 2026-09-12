@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Michel Script - Premium Code Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #ffffff;
+            color: #000000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 12px;
+            padding: 25px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        h1 {
+            color: #000000;
+            font-size: 18px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            color: #000000;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            margin: 20px 0 10px 0;
+            color: #888888;
+        }
+
+        p.desc {
+            color: #666666;
+            font-size: 13px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .section {
+            border: 1px solid #eeeeee;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 10px;
+        }
+
+        .field-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .field-group {
+            flex: 1;
+            text-align: left;
+        }
+
+        .field-label {
+            font-size: 11px;
+            color: #888888;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #000000;
+        }
+
+        .btn-create {
+            background: #000000;
+            color: #ffffff;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .btn-create:hover {
+            background: #333333;
+        }
+
+        .code-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .code-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f5f5f5;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+
+        .code-item .code-text {
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .code-item .code-status {
+            font-size: 11px;
+            color: #008800;
+            font-weight: bold;
+        }
+
+        .code-item .code-status.used-up {
+            color: #cc0000;
+        }
+
+        .btn-delete {
+            background: #ffffff;
+            border: 1px solid #cc0000;
+            color: #cc0000;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn-delete:hover {
+            background: #cc0000;
+            color: #ffffff;
+        }
+
+        .empty-state {
+            color: #999999;
+            font-size: 13px;
+            padding: 20px 0;
+            text-align: center;
+        }
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Premium Code Manager</h1>
+
+        <h2>Create Custom Code</h2>
+        <div class="section">
+            <div class="field-row">
+                <div class="field-group" style="flex: 2;">
+                    <span class="field-label">Code text</span>
+                    <input type="text" class="code-input" id="newCodeInput" placeholder="Type a code...">
+                </div>
+                <div class="field-group" style="flex: 1;">
+                    <span class="field-label">Max uses</span>
+                    <input type="number" class="code-input" id="newCodeMaxUses" value="1" min="1">
+                </div>
+            </div>
+            <button class="btn-create" onclick="createCode()">CREATE</button>
+        </div>
+
+        <h2>Generate Random Keys</h2>
+        <div class="section">
+            <div class="field-row">
+                <div class="field-group">
+                    <span class="field-label">How many keys</span>
+                    <input type="number" class="code-input" id="genQuantity" value="1" min="1">
+                </div>
+                <div class="field-group">
+                    <span class="field-label">Max uses per key</span>
+                    <input type="number" class="code-input" id="genMaxUses" value="1" min="1">
+                </div>
+            </div>
+            <button class="btn-create" onclick="generateKeys()">GENERATE</button>
+        </div>
+
+        <div class="code-list" id="codeList">
+            <div class="empty-state" id="emptyState">No premium codes yet.</div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPm2MG5omvchIMKmPgschmSSwZ_msvSPg",
+            authDomain: "key-web-61727.firebaseapp.com",
+            databaseURL: "https://key-web-61727-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "key-web-61727",
+            storageBucket: "key-web-61727.firebasestorage.app",
+            messagingSenderId: "158991751626",
+            appId: "1:158991751626:web:605f214e6b5482ca855733"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const codesRef = db.ref('premiumCodes');
+
+        function renderCodes(snapshot) {
+            const list = document.getElementById('codeList');
+            list.innerHTML = '';
+
+            if (!snapshot.exists()) {
+                const empty = document.createElement('div');
+                empty.className = 'empty-state';
+                empty.id = 'emptyState';
+                empty.innerText = 'No premium codes yet.';
+                list.appendChild(empty);
+                return;
+            }
+
+            snapshot.forEach((child) => {
+                const key = child.key;
+                const data = child.val();
+                const uses = data.uses || 0;
+                const maxUses = data.maxUses || 1;
+                const usedUp = uses >= maxUses;
+
+                const item = document.createElement('div');
+                item.className = 'code-item';
+                item.innerHTML = `
+                    <div>
+                        <div class="code-text">${data.code}</div>
+                        <div class="code-status ${usedUp ? 'used-up' : ''}">${usedUp ? 'FULLY USED' : 'ACTIVE'} · ${uses}-${maxUses}</div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteCode('${key}')">DELETE</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function randomKeyString(length = 8) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = 'MICHEL-';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function createCode() {
+            const input = document.getElementById('newCodeInput');
+            const maxUsesInput = document.getElementById('newCodeMaxUses');
+
+            const value = input.value.trim();
+            const maxUses = Math.max(1, parseInt(maxUsesInput.value) || 1);
+
+            if (!value) return;
+
+            codesRef.push({ code: value, maxUses: maxUses, uses: 0 });
+
+            input.value = '';
+            maxUsesInput.value = '1';
+        }
+
+        function generateKeys() {
+            const quantityInput = document.getElementById('genQuantity');
+            const maxUsesInput = document.getElementById('genMaxUses');
+
+            const quantity = Math.max(1, parseInt(quantityInput.value) || 1);
+            const maxUses = Math.max(1, parseInt(maxUsesInput.value) || 1);
+
+            for (let i = 0; i < quantity; i++) {
+                codesRef.push({ code: randomKeyString(), maxUses: maxUses, uses: 0 });
+            }
+
+            quantityInput.value = '1';
+            maxUsesInput.value = '1';
+        }
+
+        function deleteCode(key) {
+            codesRef.child(key).remove();
+        }
+
+        codesRef.on('value', renderCodes);
+    </script>
+
+</body>
+</html>
